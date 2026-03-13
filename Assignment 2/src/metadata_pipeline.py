@@ -1,5 +1,5 @@
 """
-04_metadata_pipeline.py
+metadata_pipeline.py
 =======================
 Handles the creation and training of pipelines that combine text features (TF-IDF)
 and numerical metadata features (length, count, hour, etc.) via ColumnTransformer.

@@ -18,11 +18,11 @@ def plot_class_distribution(df: pd.DataFrame, label_col: str = "Spam/Ham", retur
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     
-    # Pie chart
+    # Pie chart visualization for class balance
     ax1.pie(counts, labels=counts.index, autopct='%1.1f%%', startangle=90, colors=['#3498db', '#e74c3c'], explode=(0, 0.1))
     ax1.set_title("Class Distribution (Pie)", fontweight='bold')
     
-    # Bar chart
+    # Bar chart for exact volume comparison
     sns.barplot(x=counts.index, y=counts.values, ax=ax2, palette=['#3498db', '#e74c3c'])
     ax2.set_title("Class Distribution (Bar)", fontweight='bold')
     ax2.set_ylabel("Count")

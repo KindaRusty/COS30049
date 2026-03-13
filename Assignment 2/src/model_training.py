@@ -1,5 +1,5 @@
 """
-02_model_training.py
+model_training.py
 ====================
 Handles individual model definition, training, and evaluation for text-only pipeline.
 """

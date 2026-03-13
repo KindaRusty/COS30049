@@ -22,8 +22,8 @@ CLUSTER_LABELS = {
 def plot_pca_scatter(df_spam: pd.DataFrame, tfidf_matrix, cluster_col: str = "cluster", n_clusters=4, random_seed=42, return_fig=False):
     """Generate PCA scatter plot of spam clusters."""
     # Reduce to 2-D for visualization
-    X_norm = normalize(tfidf_matrix, norm="l2")
-    pca = PCA(n_components=2, random_state=random_seed)
+    X_norm = normalize(tfidf_matrix, norm="l2") # L2 normalize to prevent magnitude-dominant PCA results
+    pca = PCA(n_components=2, random_state=random_seed) # Dimensionality reduction for 2D visualization
     coords = pca.fit_transform(X_norm.toarray())
     
     fig, ax = plt.subplots(figsize=(11, 8))
@@ -73,9 +73,9 @@ def plot_top_keywords_per_cluster(top_keywords: dict, return_fig=False):
     for i, (cluster_name, keywords) in enumerate(top_keywords.items()):
         ax = axes[i]
         
-        # We need values to plot bars - since we just have words we'll assign dummy weights from 10 down to 1
+        # Assign descending weights because centroid features are sorted by relative importance
         n = len(keywords)
-        weights = range(n, 0, -1)
+        weights = range(n, 0, -1) 
         
         y_pos = np.arange(len(keywords))
         

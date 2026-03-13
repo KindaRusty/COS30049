@@ -1,5 +1,5 @@
 """
-01_data_preprocessing.py
+data_preprocessing.py
 ========================
 Handles data loading, cleaning, feature engineering, and train/test splitting.
 """
@@ -32,6 +32,76 @@ def load_dataset(filepath: str) -> pd.DataFrame:
     cols_to_drop = [c for c in df.columns if c.startswith('Unnamed') or c == 'Message ID']
     df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
     return df
+
+def load_and_standardize_220k_dataset(filepath: str) -> pd.DataFrame:
+    """Load and standardize the 220k dataset (label, text) to match the main schema."""
+    try:
+        df_new = pd.read_csv(filepath, low_memory=False)
+    except UnicodeDecodeError:
+        df_new = pd.read_csv(filepath, encoding='latin-1', low_memory=False)
+
+    # Rename columns to match the main pipeline schema
+    df_new = df_new.rename(columns={
+        "label": "Spam/Ham",
+        "text": "Message"
+    })
+
+    # Synchronize label values: numeric (0/1) -> string (ham/spam)
+    if pd.api.types.is_numeric_dtype(df_new['Spam/Ham']):
+        df_new['Spam/Ham'] = df_new['Spam/Ham'].map({0: 'ham', 1: 'spam'})
+    else:
+        df_new['Spam/Ham'] = df_new['Spam/Ham'].astype(str).str.lower().str.strip()
+
+    # Fill missing columns that the main pipeline expects
+    df_new["Subject"] = ""
+    df_new["Date"] = pd.NaT
+
+    return df_new[["Spam/Ham", "Subject", "Message", "Date"]]
+
+def compare_datasets(df_main: pd.DataFrame, df_new: pd.DataFrame):
+    """Log statistics for both datasets before merging for validation."""
+    print("\n" + "="*40)
+    print("=== DATASET COMPARISON STATUS ===")
+    print("=== Dataset 1 (Spam-50k) ===")
+    print(df_main['Spam/Ham'].value_counts())
+    print(f"Null messages: {df_main['Message'].isna().sum()}")
+    
+    print("\n=== Dataset 2 (220k Dataset) ===")
+    print(df_new['Spam/Ham'].value_counts())
+    print(f"Null messages: {df_new['Message'].isna().sum()}")
+    print("="*40 + "\n")
+
+def load_combined_datasets(original_path: str, new_dataset_path: str) -> pd.DataFrame:
+    """Load and merge the original dataset with the 220k dataset with deduplication."""
+    print("Loading original dataset...")
+    df_main = load_dataset(original_path)
+
+    print("Loading 220k dataset...")
+    df_new = load_and_standardize_220k_dataset(new_dataset_path)
+
+    # Log statistics before merging
+    compare_datasets(df_main, df_new)
+
+    # Concatenate vertically
+    print("Merging datasets...")
+    df_combined = pd.concat([df_main, df_new], ignore_index=True)
+
+    # Drop rows where Message is empty/NaN
+    df_combined = df_combined.dropna(subset=['Message'])
+
+    # IMPORTANT: Remove duplicates after merging from both sources
+    initial_count = len(df_combined)
+    df_combined = df_combined.drop_duplicates(subset=['Message'])
+    dedup_count = initial_count - len(df_combined)
+    
+    print(f"Dropped {dedup_count} duplicates.")
+    print(f"Final combined total: {len(df_combined)} rows.")
+    
+    print("\n=== Combined Label Distribution ===")
+    print(df_combined['Spam/Ham'].value_counts())
+    print("="*40 + "\n")
+    
+    return df_combined
 
 def clean_dataframe(df: pd.DataFrame, label_col: str = "Spam/Ham") -> pd.DataFrame:
     """Pre-clean dataframe: fill NaNs, combine Subject+Message, filter valid labels."""
@@ -96,14 +166,18 @@ def split_dataset(X, y, test_size=0.3, val_size=0.5, random_state=42):
     return X_train, X_val, X_test, y_train, y_val, y_test
 
 if __name__ == "__main__":
-    # Example usage
-    filepath = "../Spam-50k.csv"
+    import os
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    original_path = os.path.join(BASE_DIR, "..", "Spam-50k.csv")
+    new_dataset_path = os.path.join(BASE_DIR, "..", "spam_Emails_data.csv")
+    
     try:
-        df = load_dataset(filepath)
+        df = load_combined_datasets(original_path, new_dataset_path)
         df = clean_dataframe(df)
         df['cleaned_text'] = df['combined_text'].apply(clean_text)
         df = extract_metadata(df)
         df, le = encode_labels(df)
         print("Data preprocessing module ready.")
+        print(f"Final dataset shape: {df.shape}")
     except Exception as e:
         print(f"Could not load data for local test: {e}")
