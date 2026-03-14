@@ -14,25 +14,31 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 def get_tfidf() -> TfidfVectorizer:
-    """Returns a fresh instance of TfidfVectorizer."""
+    """Returns a fresh instance of TfidfVectorizer with optimized parameters for spam detection."""
+    # max_features=10000: limits vocabulary to top 10k terms to manage dimensionality
+    # ngram_range=(1, 2): captures unigrams and bigrams for better contextual understanding
     return TfidfVectorizer(max_features=10000, stop_words="english",
                            ngram_range=(1, 2), min_df=5, max_df=0.8)
 
 def build_models() -> dict:
-    """Returns a dictionary of un-trained Scikit-Learn pipelines."""
+    """Returns a dictionary of un-trained Scikit-Learn pipelines for baseline comparison."""
     return {
+        # Multinomial Naive Bayes: Fast and effective for text classification (standard baseline)
         "Naive Bayes": Pipeline([
             ("tfidf", get_tfidf()), 
             ("clf", MultinomialNB())
         ]),
+        # LinearSVC: Support Vector Machine optimized for text; Calibrated to provide probability scores
         "SVM (LinearSVC)": Pipeline([
             ("tfidf", get_tfidf()), 
             ("clf", CalibratedClassifierCV(LinearSVC(random_state=42, max_iter=10000)))
         ]),
+        # Logistic Regression: Interpretability and strong performance on linearly separable features
         "Logistic Regression": Pipeline([
             ("tfidf", get_tfidf()), 
             ("clf", LogisticRegression(random_state=42, max_iter=1000))
         ]),
+        # Random Forest: Ensemble method to capture non-linear relationships and interactions
         "Random Forest": Pipeline([
             ("tfidf", get_tfidf()), 
             ("clf", RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1))

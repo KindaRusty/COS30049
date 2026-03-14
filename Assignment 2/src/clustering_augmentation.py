@@ -12,43 +12,50 @@ from sklearn.metrics import silhouette_score, accuracy_score, classification_rep
 import nlpaug.augmenter.word as naw
 import nlpaug.augmenter.char as nac
 import warnings
+from typing import Optional, tuple
 
 warnings.filterwarnings("ignore")
 
-def run_kmeans(df_spam: pd.DataFrame, tfidf_matrix, n_clusters=4, random_seed=42):
+def run_kmeans(df_spam: pd.DataFrame, tfidf_matrix, n_clusters=4, random_seed=42) -> tuple:
     """Run K-Means clustering on the spam TF-IDF matrix."""
+    # Initialize KMeans with 4 clusters as identified during EDA (phishing, pharmacy, piracy, branding)
     km = KMeans(n_clusters=n_clusters, random_state=random_seed, n_init=10, max_iter=300)
     km.fit(tfidf_matrix)
     
     df_spam_clustered = df_spam.copy()
     df_spam_clustered["cluster"] = km.labels_
     
+    # Calculate silhouette score to evaluate clustering quality
     sil_score = silhouette_score(tfidf_matrix, km.labels_)
     return km, df_spam_clustered, sil_score
 
-def get_top_keywords(km: KMeans, tfidf_vectorizer, n=10):
-    """Retrieve top n keywords per cluster."""
+def get_top_keywords(km: KMeans, tfidf_vectorizer, n=10) -> dict:
+    """Retrieve top n keywords per cluster based on centroid distance."""
     terms = tfidf_vectorizer.get_feature_names_out()
     centroids = km.cluster_centers_
     top_keywords = {}
     
     for i in range(km.n_clusters):
+        # Sort indices of the centroid vector in descending order to find most prominent terms
         top_idx = centroids[i].argsort()[::-1][:n]
         top_kws = [terms[j] for j in top_idx]
         top_keywords[f"Cluster {i}"] = top_kws
         
     return top_keywords
 
-def safe_augment(augmenter, text):
-    """Safely apply augmentation; return None if failed or unmodified."""
+def safe_augment(augmenter, text) -> Optional[str]:
+    """Safely apply augmentation; return None if failed or result is identical to input."""
     try:
         text = str(text).strip()
+        # Avoid augmenting very short strings that lack semantic context
         if len(text) < 5:
             return None
         result = augmenter.augment(text)
         if isinstance(result, list):
             result = result[0]
         result = str(result).strip()
+        
+        # Return result only if it's non-empty and has actually been changed by the augmenter
         return result if (result and result != text) else None
     except Exception:
         return None
@@ -60,10 +67,14 @@ def generate_augmented_data(df: pd.DataFrame, n_per_class=250, n_target=1000, se
     ham_seed = df[df["Spam/Ham"] == "ham"].sample(n=min(n_per_class, len(df[df["Spam/Ham"] == "ham"])), random_state=seed)
     seed_df = pd.concat([spam_seed, ham_seed], ignore_index=True)
     
-    # 2. Augmenters
+    # 2. Augmenters configuration
+    # SynonymAug: Replaces words with synonyms from WordNet
     aug_synonym = naw.SynonymAug(aug_src="wordnet", aug_p=0.2)
+    # RandomWordAug: Deletes random words to simulate missing data or informal typing
     aug_delete  = naw.RandomWordAug(action="delete", aug_p=0.15)
+    # RandomCharAug: Swaps adjacent characters to simulate typos
     aug_char    = nac.RandomCharAug(action="swap", aug_char_p=0.05)
+    
     augmenters = [aug_synonym, aug_delete, aug_char]
     aug_names  = ["synonym", "delete", "char_swap"]
     
@@ -72,8 +83,10 @@ def generate_augmented_data(df: pd.DataFrame, n_per_class=250, n_target=1000, se
     for i, (_, row) in enumerate(seed_df.iterrows()):
         label, subject, msg = row["Spam/Ham"], str(row.get("Subject", "")), str(row.get("Message", ""))
         for aug, aug_name in zip(augmenters, aug_names):
+            # Apply augmentation to the message body
             aug_message = safe_augment(aug, msg)
             if aug_message:
+                # Also try augmenting the subject, or use original if augmentation fails
                 aug_subject = safe_augment(aug, subject) or subject
                 rows.append({"Strategy": aug_name, "Subject": aug_subject, "Message": aug_message, "Spam/Ham": label})
                 

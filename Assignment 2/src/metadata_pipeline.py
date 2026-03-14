@@ -17,11 +17,13 @@ from sklearn.calibration import CalibratedClassifierCV
 import joblib
 
 def make_preprocessor() -> ColumnTransformer:
-    """Return a fresh ColumnTransformer to process text and numeric metadata."""
+    """Return a fresh ColumnTransformer to process text and numeric metadata separately."""
     return ColumnTransformer(transformers=[
+        # Process 'cleaned_text' column using TF-IDF vectorization
         ("text", TfidfVectorizer(max_features=10000, stop_words="english",
                                  ngram_range=(1, 2), min_df=5, max_df=0.8),
-         "cleaned_text"), # Applies to 'cleaned_text' column
+         "cleaned_text"),
+        # Process numeric metadata columns using MinMaxScaler for algorithm compatibility (e.g. SVM, LR)
         ("num", MinMaxScaler(),
          ["text_length", "word_count", "special_char_count", "hour", "is_weekend"]),
     ])

@@ -22,10 +22,15 @@ nltk.download('punkt_tab', quiet=True)
 STOP_WORDS = set(stopwords.words("english"))
 
 def load_dataset(filepath: str) -> pd.DataFrame:
-    """Load the dataset from a CSV file."""
+    """Load the dataset from a CSV file with error handling for file existence and encoding."""
+    import os
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Dataset not found at: {filepath}")
+        
     try:
         df = pd.read_csv(filepath, low_memory=False)
     except UnicodeDecodeError:
+        # Fallback for datasets with special characters (common in email data)
         df = pd.read_csv(filepath, encoding='latin1', low_memory=False)
     
     # Drop unnecessary columns
@@ -120,12 +125,22 @@ def clean_dataframe(df: pd.DataFrame, label_col: str = "Spam/Ham") -> pd.DataFra
 def clean_text(text: str) -> str:
     """Normalize text: lowercase, replace URLs/emails/numbers, remove punctuation except specific chars."""
     text = str(text).lower()
+    
+    # regex matches: http/https links or www. prefixes
     text = re.sub(r"http\S+|www\S+|https\S+", "url_placeholder", text)
+    
+    # regex matches: standard email formats (username@domain)
     text = re.sub(r"\S+@\S+", "email_placeholder", text)
+    
+    # regex matches: one or more digits
     text = re.sub(r"\d+", "number_placeholder", text)
+    
+    # regex matches: anything NOT a word character, space, or specific currency/punctuation marks to keep
+    # [^\w\s!$?\-€£] -> keep letters, numbers, spaces, and ! $ ? - € £
     text = re.sub(r'[^\w\s!$?\-€£]', '', text)
     
     tokens = word_tokenize(text)
+    # Filter out stopwords and very short tokens (noise)
     tokens = [w for w in tokens if w not in STOP_WORDS and len(w) > 1]
     return " ".join(tokens)
 
@@ -153,9 +168,13 @@ def encode_labels(df: pd.DataFrame, label_col: str = "Spam/Ham"):
     return df, le
 
 def split_dataset(X, y, test_size=0.3, val_size=0.5, random_state=42):
-    """Split into train, validation, and test sets.
-    test_size here applies to the first split (train/temp).
-    val_size applies to the split of temp into val/test.
+    """
+    Split into train, validation, and test sets using a two-step process to achieve a 70/15/15 ratio.
+    
+    Logic:
+    1. First split: 70% Train, 30% Temp (using test_size=0.3)
+    2. Second split: Temp (30%) is split 50/50 (using val_size=0.5) to get 15% Validation and 15% Test.
+    Final Result: 70% Train, 15% Val, 15% Test.
     """
     X_train, X_temp, y_train, y_temp = train_test_split(
         X, y, test_size=test_size, random_state=random_state, stratify=y

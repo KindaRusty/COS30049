@@ -32,18 +32,21 @@ def plot_pca_scatter(df_spam: pd.DataFrame, tfidf_matrix, cluster_col: str = "cl
     for i in range(n_clusters):
         mask = df_spam[cluster_col] == i
         if not any(mask): continue
+        # Plot each cluster with a unique color from the tab10 palette
         ax.scatter(
             coords[mask, 0], coords[mask, 1],
             c=[colors[i]], label=f"Cluster {i}: {CLUSTER_LABELS.get(i, '')}",
             alpha=0.6, s=25, edgecolors="white", linewidth=0.5
         )
         
-    # Annotate cluster centers (approximate mean position in 2D)
+    # Annotate cluster centers (computed as mean position of members in 2D space) for clarity
     for i in range(n_clusters):
         mask = df_spam[cluster_col] == i
         if not any(mask): continue
         cx, cy = coords[mask, 0].mean(), coords[mask, 1].mean()
+        # Mark the centroid with a bold Black 'X'
         ax.scatter(cx, cy, c="black", marker="X", s=200, zorder=5, edgecolors="white", linewidth=1.5)
+        # Add label for the centroid
         ax.annotate(f"C{i}", (cx, cy), textcoords="offset points",
                     xytext=(8, 8), fontsize=10, fontweight="bold",
                     bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none"))

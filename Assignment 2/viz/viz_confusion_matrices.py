@@ -27,6 +27,7 @@ def plot_all_confusion_matrices(results: dict, y_test, le, return_fig=False):
         cm = confusion_matrix(y_test, y_pred)
         
         # Heatmap shows exact counts with integer formatting (fmt="d")
+        # Blues colormap is used for standard clarity in scientific reporting
         sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
                     xticklabels=le.classes_, yticklabels=le.classes_,
                     annot_kws={"size": 14})

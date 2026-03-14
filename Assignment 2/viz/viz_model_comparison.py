@@ -41,23 +41,26 @@ def plot_roc_curves(models: dict, X_test, y_test, return_fig=False):
     
     for i, (name, model) in enumerate(models.items()):
         try:
-            # Determine scoring function depending on classifier capability
+            # Determine scoring function depending on classifier capability:
+            # - predict_proba gives actual probabilities (preferred for ROC)
+            # - decision_function gives distance to hyperplane (used for linear models like LinearSVC)
             if hasattr(model, "predict_proba"):
                 y_score = model.predict_proba(X_test)[:, 1] # Probability for positive class
             elif hasattr(model, "decision_function"):
-                y_score = model.decision_function(X_test) # Raw confidence scores
+                y_score = model.decision_function(X_test) # Confidence scores
             else:
                 continue
                 
             fpr, tpr, _ = roc_curve(y_test, y_score)
             roc_auc = auc(fpr, tpr)
             
+            # Plot individual curves with AUC (Area Under Curve) metrics
             ax.plot(fpr, tpr, color=colors[i % len(colors)], lw=2, 
                     label=f'{name} (AUC = {roc_auc:.3f})')
         except Exception as e:
             print(f"Could not plot ROC for {name}: {e}")
             
-    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--') # Baseline (random classifier)
+    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--') # Baseline (perfectly random/diagonal classifier)
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
     ax.set_xlabel('False Positive Rate')
