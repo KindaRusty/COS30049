@@ -41,6 +41,7 @@ def plot_text_length_distribution(df: pd.DataFrame, text_col: str = "cleaned_tex
     """Plot the distribution of text lengths."""
     df['temp_length'] = df[text_col].apply(lambda x: len(str(x)))
     
+    fig, ax = plt.subplots(figsize=(10, 6))
     # Use histplot with KDE (Kernel Density Estimate) to show distribution shape
     sns.histplot(data=df, x='temp_length', hue=label_col, bins=50, kde=True, ax=ax, palette=['#3498db', '#e74c3c'])
     
