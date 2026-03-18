@@ -51,26 +51,37 @@ This project is a complete Machine Learning Pipeline designed to classify and de
 
 ---
 
-## 1. Environment Configuration (Conda)
+## 1. Environment Configuration
 
-Set up a reproducible Python environment using **conda**.  
+> ⚠️ **Python Version Note:** This project is tested on **Python 3.10 – 3.12**.  
+> Python 3.13 is **not recommended** because `nlpaug 1.1.11` (last release: 2022) does not officially support it.
+
+### Option A — Conda (Recommended)
+
 Open a terminal (Anaconda Prompt, CMD, or PowerShell) and run:
 
 ```bash
-# 1. Create a new conda environment with Python 3.10
+# 1. Create environment with Python 3.10 (stable, fully tested)
 conda create -n ai4cyber python=3.10 -y
 
 # 2. Activate the environment
 conda activate ai4cyber
 
-# 3. Install core Data Science & Machine Learning libraries via conda
+# 3. Install core libraries via conda
 conda install pandas numpy scikit-learn matplotlib seaborn joblib nltk -y
 
 # 4. Install nlpaug via pip (not available on conda default channels)
-pip install nlpaug
+pip install nlpaug==1.1.11
 
-# 5. Install Jupyter to run the Notebook
+# 5. Install Jupyter
 conda install jupyter -y
+```
+
+### Option B — pip + requirements.txt
+
+```bash
+pip install -r requirements.txt
+pip install jupyter
 ```
 
 ## 2. Data Processing
@@ -82,9 +93,9 @@ The file `training_dataset_final.csv` is the **final processed dataset** used to
 1. Loading and merging `Spam-50k.csv` (primary) + `spam_Emails_data.csv` (additional ~220k rows)
 2. Cleaning: standardizing labels, filling NaN values, combining Subject + Message
 3. Text preprocessing: lowercasing, replacing URLs/emails/numbers with placeholders, removing stopwords via NLTK
-4. Feature engineering: extracting `text_length`, `word_count`, `special_char_count`, `hour`, `is_weekend`
+4. Feature engineering: extracting `text_length`, `word_count`, `special_char_count`
 5. Label encoding: `ham → 0`, `spam → 1`
-6. Deduplication: removing duplicate messages
+6. Deduplication: removing duplicate messages (by `Message` column first, then by `combined_text` after Subject merge — same content with different subjects is also removed)
 
 **Final dataset columns:**
 
@@ -95,9 +106,8 @@ The file `training_dataset_final.csv` is the **final processed dataset** used to
 | `text_length` | Number of characters in the original combined text |
 | `word_count` | Number of words in the original combined text |
 | `special_char_count` | Count of punctuation/special characters |
-| `hour` | Hour extracted from email timestamp (default 12 if missing) |
-| `is_weekend` | 1 if email was sent on Saturday/Sunday, else 0 |
-| `label` | Encoded label (0 = ham, 1 = spam) |
+> **Note:** The `label` column (encoded 0/1) is used internally during training but is **not included** in the exported `training_dataset_final.csv`.
+
 
 ### 2.2 Regenerating the Processed Dataset (Optional)
 
@@ -184,7 +194,7 @@ python viz/viz_clustering.py             # K-Means PCA scatter plots
 
 ### 4.1 Using the Saved Pipeline
 
-After the Notebook has finished training (or models are available in `saved_models/`), use the following to predict new emails:
+After the Notebook has finished training (or models are available in `saved_models/`), use the following to predict:
 
 ```python
 import joblib
@@ -205,7 +215,7 @@ print(f"Prediction: {label.upper()}")
 ### 4.2 Prediction Workflow Explained
 
 ```text
-Raw Email Text
+Raw Text
     ↓
 TF-IDF Vectorization (built into the pipeline)
     ↓
@@ -214,29 +224,6 @@ Classifier Prediction (Logistic Regression / SVM / NB / RF)
 Label Decoding (0 → ham, 1 → spam)
     ↓
 Final Output: "HAM" or "SPAM"
-```
-
-> **Note:** The saved `spam_pipeline.pkl` includes the TF-IDF vectorizer as part of the Scikit-Learn Pipeline, so you only need to pass raw text - no manual preprocessing required.
-
-### 4.3 Batch Prediction Example
-
-```python
-import joblib
-
-pipeline = joblib.load('saved_models/spam_pipeline.pkl')
-encoder = joblib.load('saved_models/label_encoder.pkl')
-
-emails = [
-    "Hi John, let's meet at 3pm for the project discussion.",
-    "FREE!!! Claim your lottery prize NOW! Click http://scam.link",
-    "Please review the attached quarterly report before Friday.",
-    "You've been selected for a $500 Amazon gift card! Act fast!"
-]
-
-for email in emails:
-    pred = pipeline.predict([email])[0]
-    label = encoder.inverse_transform([pred])[0]
-    print(f"[{label.upper():4s}] {email[:60]}...")
 ```
 
 ---

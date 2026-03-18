@@ -145,20 +145,11 @@ def clean_text(text: str) -> str:
     return " ".join(tokens)
 
 def extract_metadata(df: pd.DataFrame, text_col: str = "combined_text") -> pd.DataFrame:
-    """Extract metadata features like text length, word count, special char count, hour, and is_weekend."""
+    """Extract metadata features like text length, word count, and special char count."""
     df["text_length"] = df[text_col].apply(lambda x: len(str(x)))
     df["word_count"] = df[text_col].apply(lambda x: len(str(x).split()))
     df["special_char_count"] = df[text_col].apply(lambda x: sum(1 for c in str(x) if c in string.punctuation))
     
-    if "Date" in df.columns:
-        df["parsed_date"] = pd.to_datetime(df["Date"], errors="coerce", format="mixed")
-        df["hour"] = df["parsed_date"].dt.hour.fillna(12)
-        df["is_weekend"] = df["parsed_date"].dt.dayofweek.isin([5, 6]).astype(int)
-        df.drop(columns=["Date", "parsed_date"], inplace=True, errors="ignore")
-    else:
-        df["hour"] = 12
-        df["is_weekend"] = 0
-        
     return df
 
 def encode_labels(df: pd.DataFrame, label_col: str = "Spam/Ham"):

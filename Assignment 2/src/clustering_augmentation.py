@@ -12,11 +12,11 @@ from sklearn.metrics import silhouette_score, accuracy_score, classification_rep
 import nlpaug.augmenter.word as naw
 import nlpaug.augmenter.char as nac
 import warnings
-from typing import Optional, tuple
+from typing import Optional, Tuple
 
 warnings.filterwarnings("ignore")
 
-def run_kmeans(df_spam: pd.DataFrame, tfidf_matrix, n_clusters=4, random_seed=42) -> tuple:
+def run_kmeans(df_spam: pd.DataFrame, tfidf_matrix, n_clusters=4, random_seed=42) -> Tuple:
     """Run K-Means clustering on the spam TF-IDF matrix."""
     # Initialize KMeans with 4 clusters as identified during EDA (phishing, pharmacy, piracy, branding)
     km = KMeans(n_clusters=n_clusters, random_state=random_seed, n_init=10, max_iter=300)

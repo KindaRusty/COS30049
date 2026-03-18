@@ -43,16 +43,16 @@ def main():
     df, le = encode_labels(df)
 
     # Select only the columns used for model training
+    # Explicitly exclude: label, hour, is_weekend (internal training features, not for export)
     export_cols = [
         "Spam/Ham",
         "cleaned_text",
         "text_length",
         "word_count",
-        "special_char_count",
-        "hour",
-        "is_weekend",
-        "label"
+        "special_char_count"
     ]
+    cols_to_drop = ["label", "hour", "is_weekend"]
+    df.drop(columns=[c for c in cols_to_drop if c in df.columns], inplace=True)
     df_export = df[export_cols].copy()
 
     print(f"\nSTEP 6: Exporting to {output_path}...")

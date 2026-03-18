@@ -24,11 +24,11 @@ def plot_all_confusion_matrices(results: dict, y_test, le, return_fig=False):
         ax = axes[idx // cols, idx % cols] if rows > 1 else axes[0, idx % cols]
         
         y_pred = res["y_pred"]
-        cm = confusion_matrix(y_test, y_pred)
+        cm = confusion_matrix(y_test, y_pred, normalize='true')
         
-        # Heatmap shows exact counts with integer formatting (fmt="d")
+        # Heatmap shows exact percentages rather than exact counts
         # Blues colormap is used for standard clarity in scientific reporting
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
+        sns.heatmap(cm, annot=True, fmt=".2%", cmap="Blues", ax=ax,
                     xticklabels=le.classes_, yticklabels=le.classes_,
                     annot_kws={"size": 14})
         
@@ -50,10 +50,10 @@ def plot_single_confusion_matrix(y_true, y_pred, labels, title="Confusion Matrix
     # Create a single figure and subplot
     fig, ax = plt.subplots(figsize=(6, 5))
     # Calculate the confusion matrix
-    cm = confusion_matrix(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, normalize='true')
     
-    # Plot the confusion matrix as a heatmap
-    sns.heatmap(cm, annot=True, fmt="d", cmap=cmap, 
+    # Plot the confusion matrix as a heatmap shows percentages
+    sns.heatmap(cm, annot=True, fmt=".2%", cmap=cmap, 
                 xticklabels=labels, yticklabels=labels, annot_kws={"size": 12})
     # Set title and labels for the plot
     ax.set_title(title, fontweight="bold")

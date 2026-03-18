@@ -2,7 +2,7 @@
 metadata_pipeline.py
 =======================
 Handles the creation and training of pipelines that combine text features (TF-IDF)
-and numerical metadata features (length, count, hour, etc.) via ColumnTransformer.
+and numerical metadata features (length, count, etc.) via ColumnTransformer.
 """
 
 from sklearn.compose import ColumnTransformer
@@ -24,6 +24,7 @@ def make_preprocessor() -> ColumnTransformer:
                                  ngram_range=(1, 2), min_df=5, max_df=0.8),
          "cleaned_text"),
         # Process numeric metadata columns using MinMaxScaler for algorithm compatibility (e.g. SVM, LR)
+        # Includes simulated temporal features (hour, is_weekend) consistent with notebook pipeline
         ("num", MinMaxScaler(),
          ["text_length", "word_count", "special_char_count", "hour", "is_weekend"]),
     ])
